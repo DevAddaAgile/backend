@@ -139,12 +139,41 @@ router.put('/:id', async (req, res) => {
       }
     }
     
-    const category = await Category.findByIdAndUpdate(req.params.id, categoryData, { new: true })
-      .populate('subcategories');
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
+    // Check if this is a subcategory update (has parent in body)
+    if (categoryData.parent && mongoose.Types.ObjectId.isValid(categoryData.parent)) {
+      // This is a subcategory update - find parent category first
+      const parentCategory = await Category.findById(categoryData.parent);
+      if (!parentCategory) {
+        return res.status(404).json({ message: 'Parent category not found' });
+      }
+      
+      // Find the subcategory within the parent category
+      const subcategoryIndex = parentCategory.subcategories.findIndex(
+        sub => sub._id.toString() === req.params.id
+      );
+      
+      if (subcategoryIndex === -1) {
+        return res.status(404).json({ message: 'Subcategory not found in parent category' });
+      }
+      
+      // Update subcategory fields
+      Object.keys(categoryData).forEach(key => {
+        if (categoryData[key] !== undefined && key !== 'parent') {
+          parentCategory.subcategories[subcategoryIndex][key] = categoryData[key];
+        }
+      });
+      
+      await parentCategory.save();
+      res.json(parentCategory);
+    } else {
+      // This is a main category update
+      const category = await Category.findByIdAndUpdate(req.params.id, categoryData, { new: true })
+        .populate('subcategories');
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      res.json(category);
     }
-    res.json(category);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
