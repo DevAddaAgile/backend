@@ -16,7 +16,8 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "nodemailer": "^6.9.7"
   },
   "devDependencies": {
     "http-proxy-middleware": "^2.0.9",
