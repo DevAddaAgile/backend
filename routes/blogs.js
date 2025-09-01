@@ -111,11 +111,63 @@ router.get('/', async (req, res) => {
 
 router.get('/published', async (req, res) => {
   try {
-    const blogs = await Blog.find({ published: true })
+    const { category, tag, page = 1, paginate = 10 } = req.query;
+    
+    // Build query object
+    let query = { published: true };
+    
+    // Add category filter if provided
+    if (category && category.trim() !== '') {
+      // First try to find category by slug
+      const Category = require('../models/Category');
+      let categoryFilter;
+      
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        // If it's a valid ObjectId, search by ID
+        categoryFilter = { _id: category };
+      } else {
+        // Otherwise search by slug
+        categoryFilter = { slug: category };
+      }
+      
+      const foundCategory = await Category.findOne(categoryFilter);
+      if (foundCategory) {
+        query.categories = foundCategory._id;
+      }
+    }
+    
+    // Add tag filter if provided (for future implementation)
+    if (tag && tag.trim() !== '') {
+      const Tag = require('../models/Tag');
+      let tagFilter;
+      
+      if (mongoose.Types.ObjectId.isValid(tag)) {
+        tagFilter = { _id: tag };
+      } else {
+        tagFilter = { slug: tag };
+      }
+      
+      const foundTag = await Tag.findOne(tagFilter);
+      if (foundTag) {
+        query.tags = foundTag._id;
+      }
+    }
+    
+    // Calculate pagination
+    const limit = parseInt(paginate);
+    const skip = (parseInt(page) - 1) * limit;
+    
+    // Get total count for pagination
+    const total = await Blog.countDocuments(query);
+    
+    // Get blogs with pagination
+    const blogs = await Blog.find(query)
       .populate('created_by', 'name email')
       .populate('categories')
       .populate('tags')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     
     // Ensure images exist for all blogs
     for (const blog of blogs) {
@@ -127,7 +179,13 @@ router.get('/published', async (req, res) => {
       }
     }
     
-    res.json({ data: blogs, total: blogs.length });
+    res.json({ 
+      data: blogs, 
+      total: total,
+      page: parseInt(page),
+      paginate: limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
