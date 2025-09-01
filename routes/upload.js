@@ -31,8 +31,8 @@ router.post('/', upload.single('image'), (req, res) => {
   });
 });
 
-// Handle base64 images
-function saveBase64Image(base64String, filename) {
+// Handle base64 images - store in database instead of file system
+function processBase64Image(base64String, filename) {
   if (!base64String || !base64String.startsWith('data:image/')) {
     return null;
   }
@@ -43,24 +43,16 @@ function saveBase64Image(base64String, filename) {
   }
   
   try {
-    const uploadsDir = path.join(__dirname, '..', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    
-    const imageBuffer = Buffer.from(matches[2], 'base64');
     const extension = matches[1] === 'jpeg' ? 'jpg' : matches[1];
     const fileName = `${Date.now()}-${filename}.${extension}`;
-    const filePath = path.join(uploadsDir, fileName);
-    
-    fs.writeFileSync(filePath, imageBuffer);
     
     return {
       original_url: `http://localhost:${process.env.PORT || 3004}/uploads/${fileName}`,
-      filename: fileName
+      filename: fileName,
+      base64Data: base64String  // Store the full base64 data
     };
   } catch (error) {
-    console.error('Error saving image:', error);
+    console.error('Error processing image:', error);
     return null;
   }
 }
@@ -71,11 +63,11 @@ router.post('/base64', (req, res) => {
     const result = {};
     
     if (thumbnail && thumbnail.original_url) {
-      result.thumbnail = saveBase64Image(thumbnail.original_url, 'thumbnail');
+      result.thumbnail = processBase64Image(thumbnail.original_url, 'thumbnail');
     }
     
     if (metaImage && metaImage.original_url) {
-      result.metaImage = saveBase64Image(metaImage.original_url, 'meta-image');
+      result.metaImage = processBase64Image(metaImage.original_url, 'meta-image');
     }
     
     res.json(result);

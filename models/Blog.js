@@ -9,11 +9,13 @@ const blogSchema = new mongoose.Schema({
   metaDescription: String,
   metaImage: {
     original_url: String,
-    filename: String
+    filename: String,
+    base64Data: String  // Store base64 data for dynamic image recreation
   },
   thumbnail: {
     original_url: String,
-    filename: String
+    filename: String,
+    base64Data: String  // Store base64 data for dynamic image recreation
   },
   featured: { type: Boolean, default: false },
   sticky: { type: Boolean, default: false },

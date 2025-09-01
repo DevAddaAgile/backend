@@ -6,11 +6,13 @@ const subcategorySchema = new mongoose.Schema({
   slug: String,
   icon: {
     original_url: String,
-    filename: String
+    filename: String,
+    base64Data: String  // Store base64 data for dynamic image recreation
   },
   image: {
     original_url: String,
-    filename: String
+    filename: String,
+    base64Data: String  // Store base64 data for dynamic image recreation
   },
   status: { type: Number, default: 1 }
 }, { timestamps: true });
@@ -21,11 +23,13 @@ const categorySchema = new mongoose.Schema({
   description: String,
   icon: {
     original_url: String,
-    filename: String
+    filename: String,
+    base64Data: String  // Store base64 data for dynamic image recreation
   },
   image: {
     original_url: String,
-    filename: String
+    filename: String,
+    base64Data: String  // Store base64 data for dynamic image recreation
   },
   status: { type: Number, default: 1 },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
