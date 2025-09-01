@@ -5,6 +5,23 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
+// Helper function to remove base64Data from blog response
+function cleanBlogResponse(blog) {
+  const cleanedBlog = blog.toObject ? blog.toObject() : { ...blog };
+  
+  // Remove base64Data from thumbnail if it exists
+  if (cleanedBlog.thumbnail && cleanedBlog.thumbnail.base64Data) {
+    delete cleanedBlog.thumbnail.base64Data;
+  }
+  
+  // Remove base64Data from metaImage if it exists
+  if (cleanedBlog.metaImage && cleanedBlog.metaImage.base64Data) {
+    delete cleanedBlog.metaImage.base64Data;
+  }
+  
+  return cleanedBlog;
+}
+
 // Helper function to process base64 images and store in database
 function processBase64Image(base64String, filename) {
   if (!base64String || !base64String.startsWith('data:image/')) {
@@ -87,7 +104,10 @@ router.get('/', async (req, res) => {
       }
     }
     
-    res.json({ data: blogs, total: blogs.length });
+    // Clean response to remove base64Data
+    const cleanedBlogs = blogs.map(blog => cleanBlogResponse(blog));
+    
+    res.json({ data: cleanedBlogs, total: cleanedBlogs.length });
   } catch (error) {
     // Return mock data if MongoDB fails
     if (error.message.includes('buffering timed out') || error.message.includes('timeout')) {
@@ -179,8 +199,11 @@ router.get('/published', async (req, res) => {
       }
     }
     
+    // Clean response to remove base64Data
+    const cleanedBlogs = blogs.map(blog => cleanBlogResponse(blog));
+    
     res.json({ 
-      data: blogs, 
+      data: cleanedBlogs, 
       total: total,
       page: parseInt(page),
       paginate: limit,
@@ -221,7 +244,11 @@ router.post('/', async (req, res) => {
     
     const blog = new Blog(blogData);
     await blog.save();
-    res.status(201).json(blog);
+    
+    // Clean response to remove base64Data
+    const cleanedBlog = cleanBlogResponse(blog);
+    
+    res.status(201).json(cleanedBlog);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -255,7 +282,10 @@ router.get('/:id', async (req, res) => {
       ensureImageExists(blog.metaImage);
     }
 
-    res.json(blog);
+    // Clean response to remove base64Data
+    const cleanedBlog = cleanBlogResponse(blog);
+
+    res.json(cleanedBlog);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -278,7 +308,11 @@ router.put('/:id', async (req, res) => {
     if (!blog) {
       return res.status(404).json({ message: 'Blog not found' });
     }
-    res.json(blog);
+    
+    // Clean response to remove base64Data
+    const cleanedBlog = cleanBlogResponse(blog);
+    
+    res.json(cleanedBlog);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
